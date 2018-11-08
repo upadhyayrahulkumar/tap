@@ -1,7 +1,8 @@
-all: main
+all: dist/tap
 
-main: event-queue.c interop.c main.c
+dist/tap: event-queue.c interop.c main.c
+	mkdir -p dist
 	gcc -g event-queue.c interop.c attributes.c main.c -DDEBUG=$(DEBUG) -o $@
 
 clean:
-	rm -v main || true
+	rm -v dist/* || true
