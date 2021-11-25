@@ -56,7 +56,7 @@ PROCESS(io_handler, ev) {
  *    GET 2 1
  *
  *    // Set attribute 0 in table 3
- *    GET 3 0 99
+ *    SET 3 0 99
  *
  *    // Reset table 3
  *    RESET 3
@@ -71,9 +71,13 @@ static void write_bytes(unsigned char *data, int size) {
   write_byte('\n');
 }
 
-#define ERR_INPUT "ERROR INPUT"
-#define ERR_NO_ATTR "ERROR NO-ATTR"
-#define ERR_INVALID "ERROR INVALID"
+#define ERR_INPUT     "ERROR INPUT"
+#define ERR_NO_ATTR   "ERROR NO-ATTR"
+#define ERR_INVALID   "ERROR INVALID"
+#define SET_SUCCESS   "SET SUCCESS"
+#define SET_ERROR     "SET ERROR"
+#define RESET_SUCCESS "RESET SUCCESS"
+#define RESET_ERROR   "RESET ERROR"
 
 #define RESPOND(var, str) {          \
   memcpy(var, str, sizeof(str)); \
@@ -123,18 +127,45 @@ PROCESS(attributes_handler, ev) {
        int attr =  ((unsigned char *) ev.data)[6] - 48;
        int value = ((unsigned char *) ev.data)[8] - 48;
 
-       /**
-        * TODO - Add return value to notify success
-        */
-      attr_set(table, attr, value);
+
+       if(attr_set(table, attr, value) == -1){
+       RESPOND(&res, SET_ERROR);
+       }
+       else{
+       RESPOND(&res, SET_SUCCESS);
+       }
+
       return;
     }
   }
+  else if (0 == memcmp(ev.data, "RESET ", 6)) {
+     if (ev.size != 8) {
+       RESPOND(&res, ERR_INPUT);
+       reset_input();
+       return;
+     } else {
+       int table = ((unsigned char *) ev.data)[6] - 48;
 
-  /**
-   * TODO - Add `RESET <table>`
-   * TODO - add `QUIT` command
-   */
+       if( attr_reset(table) == -1){
+       RESPOND(&res, RESET_ERROR)
+       }
+       else{
+       RESPOND(&res, RESET_SUCCESS)
+       }
+
+      return;
+    }
+  }
+  else if (0 == memcmp(ev.data, "QUIT", 4)) {
+     if (ev.size != 5) {
+       RESPOND(&res, ERR_INPUT);
+       reset_input();
+       return;
+     } else {
+       exit(0);
+      return;
+    }
+  }
 
   RESPOND(&res, ERR_INVALID);
   reset_input();
